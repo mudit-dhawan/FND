@@ -1,0 +1,30 @@
+DROPOUT_P = 0.2
+
+## Text Encoder 
+FC1_TEXT_DIM  =
+FC2_TEXT_DIM  = 
+FINE_TUNE_TEXT = False
+FINE_TUNE_TEXT_LAYERS = 6
+
+## Visual CNN:
+FC_VIS_DIM = 
+FINE_TUNE_VIS = True 
+FINE_TUNE_VIS_LAYERS = 3
+
+## Time Distributed Visual 
+BATCH_FIRST = True 
+
+## Multi Visual Encoder
+BIDIRECTIONAL_LSTM = True
+NB_LAYERS_LSTM = 1
+HIDDEN_SIZE_LSTM = 
+FC2_VIS_DIM = 
+
+## Similarity Module
+MULTIMODAL_SPACE_DIM = 
+
+## Final Model 
+FC3_TEXT_DIM = 
+FC3_VIS_DIM = 
+FC_MULTIMODAL_DIM = 
+NB_CLASSES = 2
