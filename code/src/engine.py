@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-import tqdm
+from tqdm import tqdm
 import utils
 
 from sklearn import metrics
@@ -12,7 +12,7 @@ def train_func_epoch(epoch, model, data_loader, device, optimizer, scheduler):
 
     total_loss = 0
 
-    with tqdm(dataloader, unit="batch", total=len(data_loader)) as single_epoch:
+    with tqdm(data_loader, unit="batch", total=len(data_loader)) as single_epoch:
 
         for step, batch in enumerate(single_epoch):
 
@@ -30,22 +30,25 @@ def train_func_epoch(epoch, model, data_loader, device, optimizer, scheduler):
 
             # Perform a forward pass. This will return Multimodal vec and total loss.
             sim_vec, logits_l2, logits_l3, logits_l4 = model(text=[input_ids, attn_mask], image=img_ip, label=label)
-
-            loss = final_loss(sim_vec, logits_l2, logits_l3, logits_l4)
-
+            
+            del input_ids
+            del attn_mask
+            del img_ip
+            
+            ## Calculate the final loss
+            loss = utils.final_loss(sim_vec, logits_l2, logits_l3, logits_l4, label)
+            
+            total_loss += loss.item()
+            
             # Clip the norm of the gradients to 1.0 to prevent "exploding gradients"
-            # torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            # torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
 
             # Update parameters and the learning rate
             loss.backward()
             optimizer.step()
             scheduler.step()
 
-            total_loss += loss.item()
-
-            single_epoch.set_postfix(train_loss=loss.item())
-
-        single_epoch.set_postfix(train_loss=total_loss/len(data_loader))
+            single_epoch.set_postfix(train_loss=total_loss/(step+1))
 
     return total_loss / len(data_loader)
 
@@ -58,7 +61,7 @@ def eval_func(model, data_loader, device, epoch=1):
     total_loss = 0
     total_tn, total_fp, total_fn, total_tp = 0, 0, 0, 0
 
-    with tqdm(dataloader, unit="batch", total=len(data_loader)) as single_epoch:
+    with tqdm(data_loader, unit="batch", total=len(data_loader)+1) as single_epoch:
 
         for step, batch in enumerate(single_epoch):
 
@@ -73,8 +76,12 @@ def eval_func(model, data_loader, device, epoch=1):
 
             with torch.no_grad():
                 sim_vec, logits_l2, logits_l3, logits_l4 = model(text=[input_ids, attn_mask], image=img_ip, label=label)
-
-            loss = final_loss(sim_vec, logits_l2, logits_l3, logits_l4)
+            
+            del input_ids
+            del attn_mask
+            del img_ip
+            
+            loss = utils.final_loss(sim_vec, logits_l2, logits_l3, logits_l4, label)
 
             total_loss += loss.item()
 
@@ -82,20 +89,20 @@ def eval_func(model, data_loader, device, epoch=1):
 
             # Finding predictions 
             pred_multimodal = torch.argmax(logits_l4, dim=1).flatten().cpu().numpy()
-            # pred_vis = torch.argmax(logits_l3, dim=1).flatten().cpu().numpy()
-            # pred_text = torch.argmax(logits_l2, dim=1).flatten().cpu().numpy()
+#             pred_text = torch.argmax(logits_l2, dim=1).flatten().cpu().numpy()
+#             pred_vis = torch.argmax(logits_l3, dim=1).flatten().cpu().numpy()
 
             # Find performance 
-            tn, fp, fn, tp += metrics.confusion_matrix(label.cpu().numpy(), pred_multimodal).ravel()
+            tn, fp, fn, tp = metrics.confusion_matrix(label.cpu().numpy(), pred_multimodal, labels=[0,1]).ravel()
 
             total_tn += tn
             total_fp += fp 
             total_fn += fn
             total_tp += tp 
 
-        acc, prec, rec, f1_score = utils.model_metric(total_tn, total_fp, total_fn, total_tp)
 
-        single_epoch.set_postfix(val_loss=total_loss/len(data_loader), accuracy=acc, precision=prec, recall=rec, f1_score=f1_score)
-
+    acc, prec, rec, f1_score = utils.model_metric(total_tn, total_fp, total_fn, total_tp)
+        
+    print(f'Epoch:{epoch}, val_loss={total_loss/len(data_loader)}, accuracy={acc}, precision={prec}, recall={rec}, f1_score={f1_score}')
 
     return total_loss/len(data_loader), acc, prec, rec, f1_score
