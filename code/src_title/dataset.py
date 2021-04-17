@@ -13,9 +13,10 @@ class FakeNewsDataset(Dataset):
         Args:
         """
         self.img_list = df['images'] # GC
-#         self.img_list = df['im_list'] # PF
+#         self.img_list = df['im_list'] # PF and raw GC
         
         self.text_body = df['content'] # GC
+#         self.text_body = df['text'] # raw GC
 #         self.text_body = df['text_body'] # PF
         
         self.article_title = df['title']
@@ -54,11 +55,11 @@ class FakeNewsDataset(Dataset):
         final_img_inp = [] ## Store multiple images 
         
         img_list = img_list.strip("][").split(", ") # GC
-#         img_list = img_list.split(";") # PF
+#         img_list = img_list.split(";") # PF and raw GC
         
         for img_name in img_list:
             img = Path(config.IMAGE_ROOT_DIR) / img_name[1:-1] # GC
-#             img = Path(config.IMAGE_ROOT_DIR) / img_name # PF
+#             img = Path(config.IMAGE_ROOT_DIR) / img_name # PF and raw GC
             try:
                 image = Image.open(img).convert("RGB") ## Read the image
             except Exception as e:

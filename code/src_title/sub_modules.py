@@ -18,6 +18,7 @@ class Text_Encoder(nn.Module):
         
         ## Dimensions for FC layers
         self.fc1_text_dim = model_parameters.FC1_TEXT_DIM 
+#         self.fc1_text_dim_2 = model_parameters.FC1_TEXT_DIM_2 
         self.fc2_text_dim = model_parameters.FC2_TEXT_DIM 
         
         ## If fine tuning required
@@ -37,6 +38,7 @@ class Text_Encoder(nn.Module):
             nn.Linear(self.cls_out_dim, self.fc1_text_dim),
             nn.ReLU()
         )
+        
 
         self.fc2_text = nn.Sequential(
             nn.Linear(self.fc1_text_dim, self.fc2_text_dim),
@@ -66,7 +68,7 @@ class Text_Encoder(nn.Module):
         emb_x = self.dropout(emb_x.last_hidden_state[:, 0, :])
 
         emb_x = self.fc1_text(emb_x)
-
+        
         x = self.dropout(self.fc2_text(emb_x))
 
         return x, emb_x    
@@ -130,7 +132,6 @@ class VisualCNN(nn.Module):
         x = self.dropout(self.base_vis_encoder(x))
 
         x = self.dropout(self.fc1_vis(x))
-        
         x = self.fc1_vis_2(x)
 
         return x

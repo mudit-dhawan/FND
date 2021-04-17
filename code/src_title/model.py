@@ -43,6 +43,7 @@ class Multiple_Images_Model(nn.Module):
                             nn.ReLU()
                         )
         
+        
         ## FC1 layer multimodal only
         self.fc1_multimodal = nn.Sequential(
                                 torch.nn.Linear(
@@ -61,9 +62,10 @@ class Multiple_Images_Model(nn.Module):
                                 nn.ReLU()
                             )
         
+        
         ## last layer L2
         self.fc_l2 = torch.nn.Linear(
-            in_features=self.fc3_text_dim, 
+            in_features=2*self.fc3_text_dim, 
             out_features=model_parameters.NB_CLASSES
         )
         
@@ -112,10 +114,10 @@ class Multiple_Images_Model(nn.Module):
         )
         
         ## Calculate logits for L2 and L3
-        logits_l2 = self.fc_l2(text_feature)
+        logits_l2 = self.fc_l2(torch.cat([text_feature, title_feature], dim=1))
         logits_l3 = self.fc_l3(imgs_feature)
         
-        del text_feature
+        del text_feature, title_feature
         del imgs_feature
         
         fused_multimodal = self.dropout(self.fc1_multimodal(fused_multimodal))
