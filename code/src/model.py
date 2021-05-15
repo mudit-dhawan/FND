@@ -43,10 +43,11 @@ class Multiple_Images_Model(nn.Module):
                             nn.ReLU()
                         )
         
+        
         ## FC1 layer multimodal only
         self.fc1_multimodal = nn.Sequential(
                                 torch.nn.Linear(
-                                    in_features=(self.fc3_text_dim + self.fc3_vis_dim), 
+                                    in_features=((2*self.fc3_text_dim) + self.fc3_vis_dim), 
                                     out_features=self.fc1_multimodal_dim
                                 ),
                                 nn.ReLU()
@@ -61,9 +62,10 @@ class Multiple_Images_Model(nn.Module):
                                 nn.ReLU()
                             )
         
+        
         ## last layer L2
         self.fc_l2 = torch.nn.Linear(
-            in_features=self.fc3_text_dim, 
+            in_features=2*self.fc3_text_dim, 
             out_features=model_parameters.NB_CLASSES
         )
         
@@ -82,35 +84,40 @@ class Multiple_Images_Model(nn.Module):
         self.dropout = nn.Dropout(model_parameters.DROPOUT_P)
     
 
-    def forward(self, text, image, label=None):
+    def forward(self, text, title, image, label=None):
         
         ## Text features from base encoder
         text_feature, emb_text = self.text_encoder(text[0], text[1])
 #         print(text_features.size())
+        
+        ## Title features from base encoder
+        title_feature, emb_title = self.text_encoder(title[0], title[1])
         
         ## Image features from base encoder
         imgs_feature, emb_imgs = self.visual_encoder(image)
 #         print(imgs_feature.size())
         
         ## multimodal vectors of individual components
-        sim_vec = self.sim_module(emb_text, emb_imgs)
+        sim_vec = self.sim_module(emb_text, emb_title, emb_imgs)
         
-        del emb_text
+        del emb_text, emb_title
         del emb_imgs
         
         text_feature = self.dropout(self.fc3_text(text_feature))
+        
+        title_feature = self.dropout(self.fc3_text(title_feature))
 
         imgs_feature = self.dropout(self.fc3_vis(imgs_feature))
 
         fused_multimodal = torch.cat(
-            [text_feature, imgs_feature], dim=1
+            [text_feature, title_feature, imgs_feature], dim=1
         )
         
         ## Calculate logits for L2 and L3
-        logits_l2 = self.fc_l2(text_feature)
+        logits_l2 = self.fc_l2(torch.cat([text_feature, title_feature], dim=1))
         logits_l3 = self.fc_l3(imgs_feature)
         
-        del text_feature
+        del text_feature, title_feature
         del imgs_feature
         
         fused_multimodal = self.dropout(self.fc1_multimodal(fused_multimodal))

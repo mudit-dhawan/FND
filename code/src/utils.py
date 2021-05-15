@@ -9,8 +9,11 @@ import csv
 
 def split_data():
     
-#     df = pd.read_csv(config.DATA_PATH,sep='\t') # GC clean
-    df = pd.read_csv(config.DATA_PATH) # PF and GC raw
+    df = pd.read_csv(config.DATA_PATH,sep='\t') # GC
+#     df = pd.read_csv(config.DATA_PATH) # PF and GC raw
+    
+    df = df[~df['title'].isna()] ## Filter out samples without title
+    df = df.reset_index(drop=True)
     
     ## Split data 
     msk = np.random.rand(len(df)) < config.TRAINING_SPLIT

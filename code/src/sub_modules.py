@@ -18,12 +18,12 @@ class Text_Encoder(nn.Module):
         
         ## Dimensions for FC layers
         self.fc1_text_dim = model_parameters.FC1_TEXT_DIM 
+#         self.fc1_text_dim_2 = model_parameters.FC1_TEXT_DIM_2 
         self.fc2_text_dim = model_parameters.FC2_TEXT_DIM 
         
         ## If fine tuning required
         self.fine_tune_text = model_parameters.FINE_TUNE_TEXT
         self.fine_tune_text_layers = model_parameters.FINE_TUNE_TEXT_LAYERS
-        
         self.dropout_p = model_parameters.DROPOUT_P
 
         self.cls_out_dim = 768 ## Output dim for BERT Model    
@@ -38,6 +38,7 @@ class Text_Encoder(nn.Module):
             nn.Linear(self.cls_out_dim, self.fc1_text_dim),
             nn.ReLU()
         )
+        
 
         self.fc2_text = nn.Sequential(
             nn.Linear(self.fc1_text_dim, self.fc2_text_dim),
@@ -67,7 +68,7 @@ class Text_Encoder(nn.Module):
         emb_x = self.dropout(emb_x.last_hidden_state[:, 0, :])
 
         emb_x = self.fc1_text(emb_x)
-
+        
         x = self.dropout(self.fc2_text(emb_x))
 
         return x, emb_x    
@@ -131,7 +132,6 @@ class VisualCNN(nn.Module):
         x = self.dropout(self.base_vis_encoder(x))
 
         x = self.dropout(self.fc1_vis(x))
-        
         x = self.fc1_vis_2(x)
 
         return x
@@ -184,8 +184,8 @@ class MultiVisualEncoder(nn.Module):
     def __init__(self):
         super(MultiVisualEncoder, self).__init__()
 
-        
-        self.single_img_dim = model_parameters.FC1_VIS_DIM_2 # Input dimension of the image vector 
+
+        self.single_img_dim = model_parameters.FC1_VIS_DIM_2 # Input dimension of the image vector
         
         ## configuration of the LSTM layer
         self.bidirectional = model_parameters.BIDIRECTIONAL_LSTM 
@@ -223,7 +223,7 @@ class MultiVisualEncoder(nn.Module):
         
         batch_size = x.size(0)
 
-        emb_x = self.time_distributed_cnn(x.float()) # (samples, timesteps, single_img_latent_dim) 
+        emb_x = self.time_distributed_cnn(x.float()) # (samples, timesteps, single_img_latent_dim)
 
         _, (hidden, hidden_) = self.visual_rnn(emb_x)
 
@@ -234,8 +234,7 @@ class MultiVisualEncoder(nn.Module):
             hidden = hidden.squeeze()
 
         hidden = self.dropout(self.fc2_vis(hidden))
-        
-        # emb_x -> for the multimodal space (modified contrastive loss)
+
         return hidden, emb_x
 
 ##########################################################################################################
@@ -254,21 +253,22 @@ class SimilarityModule(nn.Module):
         
         ## Single image -> used with TimDistributed 
         self.vis_latent_space = nn.Linear(self.vis_dim_in, self.multimodal_space_dim)
-       
+
         ## multiple images to multimodal space  
         self.vis_latent_vec = TimeDistributed(self.vis_latent_space)
         
-        ## Text to multimodal space 
+        ## Text/ Title to multimodal space 
         self.text_latent_vec = nn.Linear(self.text_dim_in, self.multimodal_space_dim)
-
-    def forward(self, x_text, x_vis):
+    def forward(self, x_text, x_title, x_vis):
 
         x_vis = self.vis_latent_vec(x_vis)
 
         x_text = self.text_latent_vec(x_text)
+        
+        x_title = self.text_latent_vec(x_title)
 
         x_latent_vec = torch.cat(
-            [x_text.unsqueeze(1), x_vis], dim=1
+            [x_text.unsqueeze(1), x_title.unsqueeze(1), x_vis], dim=1
         )
         
         del x_text

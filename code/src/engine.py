@@ -18,10 +18,11 @@ def train_func_epoch(epoch, model, data_loader, device, optimizer, scheduler):
 
             single_epoch.set_description(f"Training- Epoch {epoch}")
 
-            img_ip , text_ip, label = batch["img_ip"], batch["text_ip"], batch['label']
+            img_ip , text_ip, title_ip, label = batch["img_ip"], batch["text_ip"], batch["title_ip"], batch['label']
 
             ## Load the inputs to the device
-            input_ids, attn_mask = tuple(t.to(device) for t in text_ip)
+            input_ids_text, attn_mask_text = tuple(t.to(device) for t in text_ip)
+            input_ids_title, attn_mask_title = tuple(t.to(device) for t in title_ip)
             img_ip = img_ip.to(device)
             label = label.to(device)
 
@@ -29,10 +30,10 @@ def train_func_epoch(epoch, model, data_loader, device, optimizer, scheduler):
             model.zero_grad()
 
             # Perform a forward pass. This will return Multimodal vec and total loss.
-            sim_vec, logits_l2, logits_l3, logits_l4 = model(text=[input_ids, attn_mask], image=img_ip, label=label)
+            sim_vec, logits_l2, logits_l3, logits_l4 = model(text=[input_ids_text, attn_mask_text], title=[input_ids_title, attn_mask_title], image=img_ip, label=label)
             
-            del input_ids
-            del attn_mask
+            del input_ids_text, attn_mask_text
+            del input_ids_title, attn_mask_title
             del img_ip
             
             ## Calculate the final loss
@@ -41,7 +42,7 @@ def train_func_epoch(epoch, model, data_loader, device, optimizer, scheduler):
             total_loss += loss.item()
             
             # Clip the norm of the gradients to 1.0 to prevent "exploding gradients"
-            # torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
+#             torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
 
             # Update parameters and the learning rate
             loss.backward()
@@ -67,18 +68,19 @@ def eval_func(model, data_loader, device, epoch=1):
 
             single_epoch.set_description(f"Evaluating- Epoch {epoch}")
 
-            img_ip , text_ip, label = batch["img_ip"], batch["text_ip"], batch['label']
+            img_ip , text_ip, title_ip, label = batch["img_ip"], batch["text_ip"], batch["title_ip"], batch['label']
 
             ## Load the inputs to the device
-            input_ids, attn_mask = tuple(t.to(device) for t in text_ip)
+            input_ids_text, attn_mask_text = tuple(t.to(device) for t in text_ip)
+            input_ids_title, attn_mask_title = tuple(t.to(device) for t in title_ip)
             img_ip = img_ip.to(device)
             label = label.to(device)
 
             with torch.no_grad():
-                sim_vec, logits_l2, logits_l3, logits_l4 = model(text=[input_ids, attn_mask], image=img_ip, label=label)
+                sim_vec, logits_l2, logits_l3, logits_l4 = model(text=[input_ids_text, attn_mask_text], title=[input_ids_title, attn_mask_title], image=img_ip, label=label)
             
-            del input_ids
-            del attn_mask
+            del input_ids_text, attn_mask_text
+            del input_ids_title, attn_mask_title
             del img_ip
             
             loss = utils.final_loss(sim_vec, logits_l2, logits_l3, logits_l4, label)

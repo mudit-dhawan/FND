@@ -70,18 +70,18 @@ if __name__ == "__main__":
     )
 
     best_loss = np.inf
-    for epoch in range(config.EPOCHS): #Loop through number of EPOCHS
+    for epoch in range(config.EPOCHS): ## Loop over Epochs
         
-        ## Training loop
+        ## Training Loop
         train_loss = engine.train_func_epoch(epoch, model, train_data_loader, device, optimizer, scheduler)
         
         ## Validation loop
         val_loss, acc, prec, rec, f1_score = engine.eval_func(model, val_data_loader, device, epoch)
         
-        ## Log the model output after one epoch
+        ## Log the model output after 1 epoch
         utils.log_model(epoch, train_loss, val_loss, acc, prec, rec, f1_score)
         
-        ## Save the model
+        ## Save the model 
         if (val_loss < best_loss) and (config.SAVE_MODEL == True):
             torch.save(model.state_dict(), config.MODEL_PATH)
             best_loss = val_loss

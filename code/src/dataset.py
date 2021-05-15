@@ -12,19 +12,21 @@ class FakeNewsDataset(Dataset):
         """
         Args:
         """
-#         self.img_list = df['images'] # GC
-        self.img_list = df['im_list'] # PF and raw GC
+        self.img_list = df['images'] # GC
+#         self.img_list = df['im_list'] # PF and raw GC
         
-#         self.text_body = df['content'] # GC
-        self.text_body = df['text'] # raw GC
+        self.text_body = df['content'] # GC
+#         self.text_body = df['text'] # raw GC
 #         self.text_body = df['text_body'] # PF
+        
+        self.article_title = df['title']
         
         self.labels = df['label']
 
     def __len__(self):
         return len(self.labels)
     
-    def pre_processing_text(self, sent):
+    def pre_processing_text(self, sent, MAX_LEN_TEXT):
         # Create empty lists to store outputs
         input_ids = []
         attention_mask = []
@@ -32,7 +34,7 @@ class FakeNewsDataset(Dataset):
         encoded_sent = config.TOKENIZER.encode_plus(
             text=utils.text_preprocessing(sent),   # Preprocess sentence
             add_special_tokens=True,         # Add `[CLS]` and `[SEP]`
-            max_length=config.MAX_LEN_TEXT,  # Max length to truncate/pad
+            max_length=MAX_LEN_TEXT,  # Max length to truncate/pad
             padding='max_length',            # Pad sentence to max length
             # return_tensors='pt',           # Return PyTorch tensor
             return_attention_mask=True,      # Return attention mask
@@ -52,13 +54,12 @@ class FakeNewsDataset(Dataset):
         
         final_img_inp = [] ## Store multiple images 
         
-#         img_list = img_list.strip("][").split(", ") # clean GC
-        img_list = img_list.split(";") # PF and raw GC
+        img_list = img_list.strip("][").split(", ") # GC
+#         img_list = img_list.split(";") # PF and raw GC
         
         for img_name in img_list:
-#             img = Path(config.IMAGE_ROOT_DIR) / img_name[1:-1] # GC
-            img = Path(config.IMAGE_ROOT_DIR) / img_name # PF and raw GC
-    
+            img = Path(config.IMAGE_ROOT_DIR) / img_name[1:-1] # GC
+#             img = Path(config.IMAGE_ROOT_DIR) / img_name # PF and raw GC
             try:
                 image = Image.open(img).convert("RGB") ## Read the image
             except Exception as e:
@@ -72,9 +73,9 @@ class FakeNewsDataset(Dataset):
 
             if len(final_img_inp) == config.IMG_THRESHOLD: ## truncate to the max number of images 
                 break
-        
+                
         ## Create an image input vector with [1, nb_images_sample, C, H, W]
-        final_img_inp = torch.cat(final_img_inp, dim=0).unsqueeze(0) 
+        final_img_inp = torch.cat(final_img_inp, dim=0).unsqueeze(0)
 
         return final_img_inp
      
@@ -88,14 +89,18 @@ class FakeNewsDataset(Dataset):
         img_names = self.img_list[idx]
         images = self.pre_process_images(img_names)
         
-        ## Create the Textual input
+        ## Create the Textual (Body) input
         text = self.text_body[idx]
-        tensor_input_id, tensor_input_mask = self.pre_processing_text(text)
-
+        tensor_input_id_text, tensor_input_mask_text = self.pre_processing_text(text, config.MAX_LEN_TEXT)
+        
+        ## Create the Textual (Title) input
+        title = self.article_title[idx]
+        tensor_input_id_title, tensor_input_mask_title = self.pre_processing_text(title, config.MAX_LEN_TITLE)
+        
         label = self.labels[idx]
         label = torch.tensor(label, dtype=torch.long)
 
-        sample = {'img_ip': images, 'text_ip': [tensor_input_id, tensor_input_mask], 'label':label}
+        sample = {'img_ip': images, 'text_ip': [tensor_input_id_text, tensor_input_mask_text], 'title_ip': [tensor_input_id_title, tensor_input_mask_title], 'label':label}
 
         return sample
 
@@ -107,22 +112,29 @@ class MyCollate:
 
     def __call__(self, batch):
         
-        ## Create a batch for Text data (input id)
-        tensor_input_id = [item['text_ip'][0].unsqueeze(0) for item in batch]
-        tensor_input_id = torch.cat(tensor_input_id, dim=0)
+        ## Text Content- Create a batch for Text data (input id)
+        tensor_input_id_text = [item['text_ip'][0].unsqueeze(0) for item in batch]
+        tensor_input_id_text = torch.cat(tensor_input_id_text, dim=0)
         
-        ## Create a batch for Text data (mask)
-        tensor_input_mask = [item['text_ip'][1].unsqueeze(0) for item in batch]
-        tensor_input_mask = torch.cat(tensor_input_mask, dim=0)
+        ## Text Content- Create a batch for Text data (mask)
+        tensor_input_mask_text = [item['text_ip'][1].unsqueeze(0) for item in batch]
+        tensor_input_mask_text = torch.cat(tensor_input_mask_text, dim=0)
         
-        ## Create a batch for Labels
+        ## Title - Create a batch
+        tensor_input_id_title = [item['title_ip'][0].unsqueeze(0) for item in batch]
+        tensor_input_id_title = torch.cat(tensor_input_id_title, dim=0)
+        
+        tensor_input_mask_title = [item['title_ip'][1].unsqueeze(0) for item in batch]
+        tensor_input_mask_title = torch.cat(tensor_input_mask_title, dim=0)
+
+        ## Labels- Create a batch
         labels = [item['label'].unsqueeze(0) for item in batch]
         labels = torch.cat(labels, dim=0)
         
-        ## Create a batch for Visual data 
+        ## Images- Create a batch
         img_ip = [item['img_ip'].squeeze(0) for item in batch]            
         img_ip = pad_sequence(img_ip, batch_first=True) ## Pad with zero tensors (till maximum threshold)
 
-        sample = {'img_ip': img_ip, 'text_ip': [tensor_input_id, tensor_input_mask], 'label': labels}
+        sample = {'img_ip': img_ip, 'text_ip': [tensor_input_id_text, tensor_input_mask_text], 'title_ip': [tensor_input_id_title, tensor_input_mask_title], 'label': labels}
 
         return sample
