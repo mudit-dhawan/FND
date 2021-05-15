@@ -6,39 +6,36 @@ from torch.utils.tensorboard import SummaryWriter
 EXP_NAME = "raw_PF_padding_title_exp_new_1_save"
 
 ## Instantiate the tensorboard summary writer
-WRITER = SummaryWriter(f'/media/nas_mount/Shivangi/mudit/log/runs/{EXP_NAME}')
+WRITER = SummaryWriter(f'./log/runs/{EXP_NAME}')
 
-CSV_PATH = f'/media/nas_mount/Shivangi/mudit/log/saved_csv/{EXP_NAME}.csv'
+CSV_PATH = f'./log/saved_csv/{EXP_NAME}.csv'
 
 
 SAVE_MODEL = True
 ## File name for model
-MODEL_PATH = f'/media/nas_mount/Shivangi/mudit/log/saved_model/{EXP_NAME}.pt'
+MODEL_PATH = f'./log/saved_model/{EXP_NAME}.pt'
 
 TRAIN_BATCH_SIZE = 4 
 EVAL_BATCH_SIZE = 1
 EPOCHS = 50
 LR = 1e-5
 
-# DATA_PATH = "/media/data_dump/Shivangi/Mudit/dataset/new_politifact_final_dataset_title.csv"
-DATA_PATH = "/media/data_dump/Shivangi/Mudit/dataset/gossipcop/our_gossip_combined.csv"
-# DATA_PATH = "/media/data_dump/Shivangi/Mudit/dataset/raw_gossipcop/raw_gossipcop_data_final.csv"
+# DATA_PATH = "./dataset/raw_politifact_dataset.csv"
+DATA_PATH = "./dataset/gossipcop/clean_gossip_dataset.csv"
+# DATA_PATH = "./dataset/raw_gossipcop/raw_gossipcop_dataset.csv"
+
 IMG_THRESHOLD = 3
 
 TRAINING_SPLIT = 0.8
-
-# BASE_MODEL_NAME = 'xlnet-base-cased'
-# TOKENIZER = transformers.XLNetTokenizer.from_pretrained(f'{BASE_MODEL_NAME}')
-# MAX_LEN_TEXT = 2000
 
 BASE_MODEL_NAME = 'bert-base-uncased'
 TOKENIZER = transformers.BertTokenizer.from_pretrained(f'{BASE_MODEL_NAME}', do_lower_case=True)
 MAX_LEN_TEXT = 510
 MAX_LEN_TITLE = 100
 
-# IMAGE_ROOT_DIR = "/media/data_dump/Shivangi/Mudit/dataset/politifact/"
-IMAGE_ROOT_DIR = "/media/data_dump/Shivangi/Mudit/dataset/gossipcop/gossipcop_images/"
-# IMAGE_ROOT_DIR = "/media/data_dump/Shivangi/Mudit/dataset/raw_gossipcop/"
+# IMAGE_ROOT_DIR = "./dataset/politifact/"
+IMAGE_ROOT_DIR = "./dataset/gossipcop/gossipcop_images/"
+# IMAGE_ROOT_DIR = "./dataset/raw_gossipcop/"
 
 IMAGE_TRANSFORM = transforms.Compose(
     [
