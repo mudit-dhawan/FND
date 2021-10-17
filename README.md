@@ -1,6 +1,6 @@
-# Leveraging Inter-modality Discordance for Multimodal Fake News Detection
+# Inter-modality Discordance for Multimodal Fake News Detection
 
-This is the source code for the paper "Leveraging Inter-modality Discordance for Multimodal Fake News Detection"
+This is the source code for the paper "Inter-modality Discordance for Multimodal Fake News Detection" accepted at ACM MM Asia 2021.
 ## Getting started
 
 ## Setup
